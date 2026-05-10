@@ -6,18 +6,19 @@
 #include <iostream>
 #include <cstdlib>
 #include <ctime>
+#include <chrono>
 using namespace std;
 
-/* Prepare Global Variables */
+/* Global Variables */
 
-const int NUM_POINTS = 400;
+const int NUM_POINTS = 1000;
 const float MARGIN = 0.95f;
 vector<vector<int>> graph;
 vector<int> path;
 vector<int> nodes_visited;
 int current_algorithm_search = -1;
 
-/* Setup OpenGL functionality */
+/* Setup OpenGL functionalities */
 
 vector<Point> points;
 vector<double> coords;
@@ -74,44 +75,70 @@ void run_algorithm(int algorithm) {
         return;
     }
 
+    path.clear();
+    nodes_visited.clear();
+
     string algorithm_name[] = {"BFS", "DFS", "A*", "Greedy Best-First", "Hill Climbing", "Dijkstra", "IDA*"};
     cout << "Running " << algorithm_name[algorithm] << "..." << endl;
 
+    auto start_time = chrono::high_resolution_clock::now();
+
     if (algorithm == 0) {
-        path = bfs(start_point, end_point, graph);
+        path = bfs(start_point, end_point, graph, nodes_visited);
     }
     else if (algorithm == 1) {
-        path = dfs(start_point, end_point, graph);
+        path = dfs(start_point, end_point, graph, nodes_visited);
     }
     else if (algorithm == 2) {
-        path = a_star(start_point, end_point, graph, points);
+        path = a_star(start_point, end_point, graph, points, nodes_visited);
     }
     else if (algorithm == 3) {
-        path = greedy_best_first(start_point, end_point, graph, points);
+        path = greedy_best_first(start_point, end_point, graph, points, nodes_visited);
     }
     else if (algorithm == 4) {
-        path = hill_climbing(start_point, end_point, graph, points);
+        path = hill_climbing(start_point, end_point, graph, points, nodes_visited);
     }
     else if (algorithm == 5) {
-        path = dijkstra(start_point, end_point, graph, points);
+        path = dijkstra(start_point, end_point, graph, points, nodes_visited);
     }
     else if (algorithm == 6) {
-        path = ida_star(start_point, end_point, graph, points);
+        path = ida_star(start_point, end_point, graph, points, nodes_visited);
     }
+
+    auto end_time = chrono::high_resolution_clock::now();
+    auto duration = chrono::duration_cast<chrono::microseconds>(end_time - start_time).count();
 
     if (path.empty()) {
         cout << "No path found." << endl;
     }
-
-    cout << "Path length: " << path.size() << endl;
-    cout << "Path: ";
-
-    for (int index = 0; index < (int)path.size(); index++) {
-        cout << path[index] << " ";
+    else {
+        cout << "Path length: " << path.size() << endl;
+        cout << "Path: ";
+        for (int i : path) cout << i << " ";
+        cout << endl;
     }
-    cout << endl;
 
+    cout << "Visited: " << nodes_visited.size() << " nodes" << endl;
+    cout << "Execution time: " << duration << " microseconds" << endl;
     glutPostRedisplay();
+}
+
+void generate_points() {
+    points.clear();
+    coords.clear();
+    for (int i = 0; i < NUM_POINTS; i++) {
+        Point p;
+        p.x = (float)rand() / RAND_MAX * 2.0f * MARGIN - MARGIN;
+        p.y = (float)rand() / RAND_MAX * 2.0f * MARGIN - MARGIN;
+        points.push_back(p);
+        coords.push_back(p.x);
+        coords.push_back(p.y);
+    }
+}
+
+void compute_triangulation() {
+    delete triangulation;
+    triangulation = new delaunator::Delaunator(coords);
 }
 
 void mouse(int button, int state, int x, int y) {
@@ -170,24 +197,16 @@ void keyboard(unsigned char key, int x, int y) {
         nodes_visited.clear();
         glutPostRedisplay();
     }
-}
-
-void generate_points() {
-    points.clear();
-    coords.clear();
-    for (int i = 0; i < NUM_POINTS; i++) {
-        Point p;
-        p.x = (float)rand() / RAND_MAX * 2.0f * MARGIN - MARGIN;
-        p.y = (float)rand() / RAND_MAX * 2.0f * MARGIN - MARGIN;
-        points.push_back(p);
-        coords.push_back(p.x);
-        coords.push_back(p.y);
+    else if (key == 'g' || key == 'G') {
+        generate_points();
+        compute_triangulation();
+        build_graph();
+        start_point = -1;
+        end_point = -1;
+        path.clear();
+        nodes_visited.clear();
+        glutPostRedisplay();
     }
-}
-
-void compute_triangulation() {
-    delete triangulation;
-    triangulation = new delaunator::Delaunator(coords);
 }
 
 void draw_mesh() {
