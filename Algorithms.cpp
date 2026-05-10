@@ -1,7 +1,7 @@
 #include "Point.h"
 #include "Algorithms.h"
 
-vector<int> bfs(int start, int end, vector<vector<int>>& graph) {
+vector<int> bfs(int start, int end, vector<vector<int>>& graph, vector<int>& visited) {
     queue<int> q;
     unordered_map<int, int> parent;
     q.push(start);
@@ -10,6 +10,7 @@ vector<int> bfs(int start, int end, vector<vector<int>>& graph) {
     while (!q.empty()) {
         int current = q.front();
         q.pop();
+        visited.push_back(current);
 
         if (current == end) {
             vector<int> path;
@@ -32,7 +33,7 @@ vector<int> bfs(int start, int end, vector<vector<int>>& graph) {
     return {};
 }
 
-vector<int> dfs(int start, int end, vector<vector<int>>& graph) {
+vector<int> dfs(int start, int end, vector<vector<int>>& graph, vector<int>& visited) {
     stack<int> s;
     unordered_map<int, int> parent;
     s.push(start);
@@ -41,6 +42,7 @@ vector<int> dfs(int start, int end, vector<vector<int>>& graph) {
     while (!s.empty()) {
         int current = s.top();
         s.pop();
+        visited.push_back(current);
 
         if (current == end) {
             vector<int> path;
@@ -63,7 +65,7 @@ vector<int> dfs(int start, int end, vector<vector<int>>& graph) {
     return {};
 }
 
-vector<int> a_star(int start, int end, vector<vector<int>>& graph, vector<Point>& points) {
+vector<int> a_star(int start, int end, vector<vector<int>>& graph, vector<Point>& points, vector<int>& visited) {
     auto heuristic = [&](int a, int b) {
         float dx = points[a].x - points[b].x;
         float dy = points[a].y - points[b].y;
@@ -81,6 +83,7 @@ vector<int> a_star(int start, int end, vector<vector<int>>& graph, vector<Point>
     while (!frontier.empty()) {
         int current = frontier.top().second;
         frontier.pop();
+        visited.push_back(current);
 
         if (current == end) {
             vector<int> path;
@@ -107,7 +110,7 @@ vector<int> a_star(int start, int end, vector<vector<int>>& graph, vector<Point>
     return {};
 }
 
-vector<int> greedy_best_first(int start, int end, vector<vector<int>>& graph, vector<Point>& points) {
+vector<int> greedy_best_first(int start, int end, vector<vector<int>>& graph, vector<Point>& points, vector<int>& visited) {
     auto heuristic = [&](int a, int b) {
         float dx = points[a].x - points[b].x;
         float dy = points[a].y - points[b].y;
@@ -123,6 +126,7 @@ vector<int> greedy_best_first(int start, int end, vector<vector<int>>& graph, ve
     while (!frontier.empty()) {
         int current = frontier.top().second;
         frontier.pop();
+        visited.push_back(current);
 
         if (current == end) {
             vector<int> path;
@@ -147,7 +151,7 @@ vector<int> greedy_best_first(int start, int end, vector<vector<int>>& graph, ve
     return {};
 }
 
-vector<int> hill_climbing(int start, int end, vector<vector<int>>& graph, vector<Point>& points) {
+vector<int> hill_climbing(int start, int end, vector<vector<int>>& graph, vector<Point>& points, vector<int>& visited) {
     auto objective = [&](int a) {
         float dx = points[a].x - points[end].x;
         float dy = points[a].y - points[end].y;
@@ -159,6 +163,7 @@ vector<int> hill_climbing(int start, int end, vector<vector<int>>& graph, vector
     parent[start] = -1;
 
     while (current != end) {
+        visited.push_back(current);
         int next = -1;
         float best_value = objective(current);
 
@@ -190,7 +195,7 @@ vector<int> hill_climbing(int start, int end, vector<vector<int>>& graph, vector
     return {};
 }
 
-vector<int> dijkstra(int start, int end, vector<vector<int>>& graph, vector<Point>& points) {
+vector<int> dijkstra(int start, int end, vector<vector<int>>& graph, vector<Point>& points, vector<int>& visited) {
     auto weights = [&](int a, int b) {
         float dx = points[a].x - points[b].x;
         float dy = points[a].y - points[b].y;
@@ -208,6 +213,7 @@ vector<int> dijkstra(int start, int end, vector<vector<int>>& graph, vector<Poin
         int current = frontier.top().second;
         int current_weight = frontier.top().first;
         frontier.pop();
+        visited.push_back(current);
 
         if (current == end) {
             vector<int> path;
@@ -236,7 +242,7 @@ vector<int> dijkstra(int start, int end, vector<vector<int>>& graph, vector<Poin
     return {};
 }
 
-vector<int> ida_star(int start, int end, vector<vector<int>>& graph, vector<Point>& points) {
+vector<int> ida_star(int start, int end, vector<vector<int>>& graph, vector<Point>& points, vector<int>& visited) {
     auto heuristic = [&](int a, int b) {
         float dx = points[a].x - points[b].x;
         float dy = points[a].y - points[b].y;
@@ -248,6 +254,7 @@ vector<int> ida_star(int start, int end, vector<vector<int>>& graph, vector<Poin
     parent[start] = -1;
 
     function<float(int, float)> search = [&](int current, float g) -> float {
+        visited.push_back(current);
         float f = g + heuristic(current, end);
         if (f > threshold) return f;
         if (current == end) return -1;
