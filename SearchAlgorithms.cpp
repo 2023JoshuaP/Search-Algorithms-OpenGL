@@ -1,18 +1,23 @@
 #include <GL/glut.h>
+#include "Point.h"
+#include "Algorithms.h"
+#include "delaunator.hpp"
+
 #include <iostream>
 #include <cstdlib>
-#include <vector>
 #include <ctime>
-#include "delaunator.hpp"
 using namespace std;
+
+/* Prepare Global Variables */
 
 const int NUM_POINTS = 400;
 const float MARGIN = 0.95f;
+vector<vector<int>> graph;
+vector<int> path;
+vector<int> nodes_visited;
+int current_algorithm_search = -1;
 
-struct Point {
-    float x;
-    float y;
-};
+/* Setup OpenGL functionality */
 
 vector<Point> points;
 vector<double> coords;
@@ -43,6 +48,72 @@ int nearest_point(float x, float y) {
     return nearest;
 }
 
+void build_graph() {
+    graph.clear();
+    graph.resize(points.size());
+
+    for (size_t i = 0; i < triangulation->triangles.size(); i += 3) {
+        int a = triangulation->triangles[i];
+        int b = triangulation->triangles[i + 1];
+        int c = triangulation->triangles[i + 2];
+
+        graph[a].push_back(b); graph[b].push_back(a);
+        graph[b].push_back(c); graph[c].push_back(b);
+        graph[a].push_back(c); graph[c].push_back(a);
+    }
+
+    for (auto& neighbors : graph) {
+        sort(neighbors.begin(), neighbors.end());
+        neighbors.erase(unique(neighbors.begin(), neighbors.end()), neighbors.end());
+    }
+}
+
+void run_algorithm(int algorithm) {
+    if (start_point == -1 || end_point == -1) {
+        cout << "Please select both start and end points." << endl;
+        return;
+    }
+
+    string algorithm_name[] = {"BFS", "DFS", "A*", "Greedy Best-First", "Hill Climbing", "Dijkstra", "IDA*"};
+    cout << "Running " << algorithm_name[algorithm] << "..." << endl;
+
+    if (algorithm == 0) {
+        path = bfs(start_point, end_point, graph);
+    }
+    else if (algorithm == 1) {
+        path = dfs(start_point, end_point, graph);
+    }
+    else if (algorithm == 2) {
+        path = a_star(start_point, end_point, graph, points);
+    }
+    else if (algorithm == 3) {
+        path = greedy_best_first(start_point, end_point, graph, points);
+    }
+    else if (algorithm == 4) {
+        path = hill_climbing(start_point, end_point, graph, points);
+    }
+    else if (algorithm == 5) {
+        path = dijkstra(start_point, end_point, graph, points);
+    }
+    else if (algorithm == 6) {
+        path = ida_star(start_point, end_point, graph, points);
+    }
+
+    if (path.empty()) {
+        cout << "No path found." << endl;
+    }
+
+    cout << "Path length: " << path.size() << endl;
+    cout << "Path: ";
+
+    for (int index = 0; index < (int)path.size(); index++) {
+        cout << path[index] << " ";
+    }
+    cout << endl;
+
+    glutPostRedisplay();
+}
+
 void mouse(int button, int state, int x, int y) {
     if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN) {
         float glx = screenToGLX(x, 1100);
@@ -68,8 +139,37 @@ void mouse(int button, int state, int x, int y) {
 }
 
 void keyboard(unsigned char key, int x, int y) {
-    if (key == 27)
+    if (key == 27) {
         exit(0);
+    }
+    else if (key == '1') {
+        run_algorithm(0);
+    }
+    else if (key == '2') {
+        run_algorithm(1);
+    }
+    else if (key == '3') {
+        run_algorithm(2);
+    }
+    else if (key == '4') {
+        run_algorithm(3);
+    }
+    else if (key == '5') {
+        run_algorithm(4);
+    }
+    else if (key == '6') {
+        run_algorithm(5);
+    }
+    else if (key == '7') {
+        run_algorithm(6);
+    }
+    else if (key == 'r' || key == 'R') {
+        start_point = -1;
+        end_point = -1;
+        path.clear();
+        nodes_visited.clear();
+        glutPostRedisplay();
+    }
 }
 
 void generate_points() {
@@ -112,38 +212,62 @@ void draw_mesh() {
 }
 
 void draw_points() {
-    glColor3f(1.0f, 1.0f, 1.0f);
     glPointSize(7.0f);
     glBegin(GL_POINTS);
 
     for (int i = 0; i < (int)points.size(); i++) {
-        if (i == start_point)
-            glColor3f(0.0f, 1.0f, 0.0f); 
-        else if (i == end_point)
-            glColor3f(1.0f, 0.0f, 0.0f); 
-        else
-            glColor3f(1.0f, 1.0f, 1.0f); 
-
+        if (i == start_point) {
+            glColor3f(0.0f, 1.0f, 0.0f);
+        }
+        else if (i == end_point) {
+            glColor3f(1.0f, 0.0f, 0.0f);
+        }
+        else if (find(nodes_visited.begin(), nodes_visited.end(), i) != nodes_visited.end()) {
+            glColor3f(1.0f, 1.0f, 0.0f);
+        }
+        else {
+            glColor3f(1.0f, 1.0f, 1.0f);
+        }
         glVertex2f(points[i].x, points[i].y);
     }
 
     glEnd();
 }
 
+void draw_path() {
+    if (path.size() < 2) {
+        return;
+    }
+
+    glColor3f(0.0f, 0.5f, 1.0f);
+    glLineWidth(3.0f);
+    glBegin(GL_LINES);
+
+    for (int i = 0; i < (int)path.size() - 1; i++) {
+        glVertex2f(points[path[i]].x, points[path[i]].y);
+        glVertex2f(points[path[i + 1]].x, points[path[i + 1]].y);
+    }
+
+    glEnd();
+    glLineWidth(1.0f);
+}
+
 void display() {
     glClear(GL_COLOR_BUFFER_BIT);
     draw_mesh();
+    draw_path();
     draw_points();
-    glFlush();
+    glutSwapBuffers();
 }
 
 int main(int argc, char** argv) {
     srand(time(0));
     generate_points();
     compute_triangulation();
+    build_graph();
 
     glutInit(&argc, argv);
-    glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB);
+    glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB);
     glutInitWindowSize(1100, 800);
     glutCreateWindow("Mesh");
     // glutFullScreen();
