@@ -24,7 +24,7 @@ void display() {
 int main(int argc, char** argv) {
     glutInit(&argc, argv);
     glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB);
-    glutInitWindowSize(800, 800);
+    glutInitWindowSize(1100, 800);
     glutCreateWindow("Puntos");
     glutDisplayFunc(display);
     glutMainLoop();
