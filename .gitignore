@@ -1,4 +1,6 @@
 test
-SearchAlgorithms
+main
 test_algo
 test_algo.cpp
+test.cpp
+Makefile
